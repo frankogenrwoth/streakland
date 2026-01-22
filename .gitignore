@@ -31,6 +31,7 @@ coverage/**
 # Uploaded files
 uploads/
 public/uploads/
+data/
 
 # OS & editors
 .DS_Store
