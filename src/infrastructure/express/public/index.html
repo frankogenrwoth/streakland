@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Streakland SPA</title>
+    <link rel="stylesheet" href="/style.css">
+  </head>
+  <body>
+    <div id="app">
+      <h1>Streakland</h1>
+      <form id="addForm">
+        <input id="name" placeholder="Habit name" required />
+        <button type="submit">Add Habit</button>
+      </form>
+
+      <div id="cardArea" style="display: flex; flex-direction: row; align-items: center; margin-top: 20px;">
+        <div id="cardWrapper">
+          <!-- card will be injected here -->
+        </div>
+
+        <div id="controls" style="display: flex; flex-direction: column;">
+          <button id="prevBtn" style="height: 54px; width: 54px; margin: 10px 0;border-radius: 50%;">
+            <svg  xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24" >
+              <path d="M13 15V5.41l4.29 4.3 1.42-1.42L12 1.59l-6.71 6.7 1.42 1.42L11 5.41V15z"></path><path d="M12 22c4.96 0 9-4.04 9-9h-2c0 3.86-3.14 7-7 7s-7-3.14-7-7H3c0 4.96 4.04 9 9 9"></path>
+            </svg>
+          </button>
+          <button id="nextBtn" style="height: 54px; width: 54px; margin: 10px 0;border-radius: 50%;">
+            <svg  xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24" >
+              <!--Boxicons v3.0.8 https://boxicons.com | License  https://docs.boxicons.com/free-->
+              <path d="M17.29 14.29 13 18.59V9h-2v9.59l-4.29-4.3-1.42 1.42 6.71 6.7 6.71-6.7z"></path><path d="M12 4c3.86 0 7 3.14 7 7h2c0-4.96-4.04-9-9-9s-9 4.04-9 9h2c0-3.86 3.14-7 7-7"></path>
+            </svg>
+          </button>
+        </div>
+
+        <div id="emptyState" style="display:none; margin-top:20px; color: #cfe6ff;">All habits checked in for today — nice job!</div>
+      </div>
+
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
