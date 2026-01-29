@@ -3,7 +3,6 @@ const path = require('path');
 
 const container = require('../../container');
 const Habit = require('../../domain/entities/habit');
-const { CheckInHabitUseCase } = require('../../domain/usecases/checkInHabit');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,7 +17,9 @@ app.get('/api/habits', async (req, res) => {
   try {
     const adapter = container.getInstance('habitAdapter', { filePath: './data/habits.json' });
     const habits = await adapter.getHabits();
-    res.json(habits);
+    const today = new Date().toISOString().split('T')[0];
+    const visible = habits.filter(h => h.last_check !== today);
+    res.json(visible);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -41,24 +42,13 @@ app.post('/api/habits', async (req, res) => {
 app.post('/api/habits/:id/checkin', async (req, res) => {
   try {
     const adapter = container.getInstance('habitAdapter', { filePath: './data/habits.json' });
-    const { CheckInHabitUseCase } = require('../../domain/usecases/checkInHabit');
+    const { CheckInHabitUseCase } = require('../../application/usecases/checkInHabit');
     const usecase = new CheckInHabitUseCase(adapter);
     const updated = await usecase.execute(req.params.id);
     const habits = await adapter.getHabits();
     const today = new Date().toISOString().split('T')[0];
-    const allChecked = habits.length > 0 && habits.every(h => h.last_check === today);
-    if (allChecked) {
-      try {
-        if (adapter.habitRepository && typeof adapter.habitRepository._saveHabits === 'function') {
-          await adapter.habitRepository._saveHabits([]);
-        } else if (adapter.habitRepository && typeof adapter.habitRepository.save === 'function') {
-          await adapter.habitRepository.save([]);
-        }
-      } catch (err) {
-        console.error('Failed to clear habits file:', err.message || err);
-      }
-    }
-    res.json({ updated, cleared: allChecked });
+    const remaining = habits.filter(h => h.last_check !== today);
+    res.json({ updated, remaining });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
