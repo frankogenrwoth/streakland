@@ -1,5 +1,6 @@
 const HabitAdapter = require('./adapters/habitAdapter');
 const FileHabitRepo = require('./infrastructure/fileHabitRepo');
+const LocalStorageHabitRepo = require('./infrastructure/localStorageHabitRepo');
 
 const createContainer = () => {
   let instances = new Map();
@@ -16,10 +17,17 @@ const createContainer = () => {
         return new FileHabitRepo(filePath);
       },
 
+      localHabitRepo: () => {
+        const storageKey = config.storageKey || 'streakland.habits';
+        return new LocalStorageHabitRepo(storageKey);
+      },
+
       habitAdapter: () => {
         let repo = config.habitRepository;
         if (!repo) {
-          if (config.repoType === 'file' || config.filePath) {
+          if (config.repoType === 'local') {
+            repo = createInstance('localHabitRepo', { storageKey: config.storageKey });
+          } else if (config.repoType === 'file' || config.filePath) {
             repo = createInstance('fileHabitRepo', { filePath: config.filePath });
           } else {
             repo = createInstance('fileHabitRepo', {});

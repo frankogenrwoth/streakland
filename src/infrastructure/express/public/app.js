@@ -1,9 +1,21 @@
 let habits = [];
 let idx = 0;
 
+const urlParams = new URLSearchParams(window.location.search);
+const repoParam = urlParams.get('repo');
+const useLocal = repoParam ? repoParam === 'local' : (typeof window.localStorage !== 'undefined');
+const STORAGE_KEY = 'streakland.habits';
+
 async function fetchHabits() {
-  const res = await fetch('/api/habits');
-  return res.json();
+  if (!useLocal) {
+    const res = await fetch('/api/habits');
+    return res.json();
+  }
+  const raw = window.localStorage.getItem(STORAGE_KEY);
+  let all = [];
+  try { all = JSON.parse(raw || '[]'); } catch (e) { all = []; }
+  const today = new Date().toISOString().split('T')[0];
+  return all.filter(h => h.last_check !== today);
 }
 
 function renderCard(h) {
@@ -38,12 +50,22 @@ function renderCard(h) {
 }
 
 async function addHabit(name) {
-  const res = await fetch('/api/habits', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name })
-  });
-  return res.json();
+  if (!useLocal) {
+    const res = await fetch('/api/habits', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    });
+    return res.json();
+  }
+  const raw = window.localStorage.getItem(STORAGE_KEY);
+  let all = [];
+  try { all = JSON.parse(raw || '[]'); } catch (e) { all = []; }
+  const id = String(Date.now());
+  const habit = { id, name, last_check: null, streak: 0 };
+  all.push(habit);
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+  return habit;
 }
 
 async function load() {
@@ -84,23 +106,52 @@ async function checkCurrent() {
   if (habits.length === 0) return;
   const current = habits[idx];
   try {
-    const res = await fetch(`/api/habits/${current.id}/checkin`, { method: 'POST' });
-    const data = await res.json();
-    if (!res.ok) {
-      alert(data.error || 'Error');
-      return;
-    }
-    if (data.cleared) {
-      habits = [];
-      idx = 0;
-      document.getElementById('cardWrapper').innerHTML = '';
-      document.getElementById('controls').style.display = 'none';
-      document.getElementById('emptyState').style.display = 'block';
+    if (!useLocal) {
+      const res = await fetch(`/api/habits/${current.id}/checkin`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Error');
+        return;
+      }
+      const remaining = data.remaining || [];
+      habits = remaining;
+      if (habits.length === 0) {
+        idx = 0;
+        document.getElementById('cardWrapper').innerHTML = '';
+        document.getElementById('controls').style.display = 'none';
+        document.getElementById('emptyState').style.display = 'block';
+        return;
+      }
+      if (idx >= habits.length) idx = 0;
+      renderCard(habits[idx]);
       return;
     }
 
-    habits.splice(idx, 1);
+    // Local checkin logic (mirrors server-side usecase)
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    let all = [];
+    try { all = JSON.parse(raw || '[]'); } catch (e) { all = []; }
+    const habit = all.find(h => h.id === current.id);
+    if (!habit) { alert('Habit not found'); return; }
+
+    const today = new Date().toISOString().split('T')[0];
+    const lastCheckDate = habit.last_check ? new Date(habit.last_check).toISOString().split('T')[0] : null;
+    if (today === lastCheckDate) { alert('Habit already checked in today'); return; }
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayDate = yesterday.toISOString().split('T')[0];
+    if (lastCheckDate === yesterdayDate) {
+      habit.streak = (habit.streak || 0) + 1;
+    } else {
+      habit.streak = 1;
+    }
+    habit.last_check = today;
+    // persist
+    const updatedAll = all.map(h => h.id === habit.id ? habit : h);
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedAll));
+    const remaining = updatedAll.filter(h => h.last_check !== today);
+    habits = remaining;
     if (habits.length === 0) {
+      idx = 0;
       document.getElementById('cardWrapper').innerHTML = '';
       document.getElementById('controls').style.display = 'none';
       document.getElementById('emptyState').style.display = 'block';
